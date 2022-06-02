@@ -1,0 +1,219 @@
+# search.py
+# ---------
+# Licensing Information:  You are free to use or extend these projects for 
+# educational purposes provided that (1) you do not distribute or publish 
+# solutions, (2) you retain this notice, and (3) you provide clear 
+# attribution to UC Berkeley, including a link to 
+# http://inst.eecs.berkeley.edu/~cs188/pacman/pacman.html
+# 
+# Attribution Information: The Pacman AI projects were developed at UC Berkeley.
+# The core projects and autograders were primarily created by John DeNero 
+# (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
+# Student side autograding was added by Brad Miller, Nick Hay, and 
+# Pieter Abbeel (pabbeel@cs.berkeley.edu).
+
+
+"""
+In search.py, you will implement generic search algorithms which are called
+by Pacman agents (in searchAgents.py).
+"""
+import copy
+
+import util
+
+class SearchProblem:
+    """
+    This class outlines the structure of a search problem, but doesn't implement
+    any of the methods (in object-oriented terminology: an abstract class).
+
+    You do not need to change anything in this class, ever.
+    """
+
+    def getStartState(self):
+        """
+        Returns the start state for the search problem
+        """
+        util.raiseNotDefined()
+
+    def isGoalState(self, state):
+        """
+          state: Search state
+
+        Returns True if and only if the state is a valid goal state
+        """
+        util.raiseNotDefined()
+
+    def getSuccessors(self, state):
+        """
+          state: Search state
+
+        For a given state, this should return a list of triples,
+        (successor, action, stepCost), where 'successor' is a
+        successor to the current state, 'action' is the action
+        required to get there, and 'stepCost' is the incremental
+        cost of expanding to that successor
+        """
+        util.raiseNotDefined()
+
+    def getCostOfActions(self, actions):
+        """
+         actions: A list of actions to take
+
+        This method returns the total cost of a particular sequence of actions.  The sequence must
+        be composed of legal moves
+        """
+        util.raiseNotDefined()
+
+
+def tinyMazeSearch(problem):
+    """
+    Returns a sequence of moves that solves tinyMaze.  For any other
+    maze, the sequence of moves will be incorrect, so only use this for tinyMaze
+    """
+    from game import Directions
+    s = Directions.SOUTH
+    w = Directions.WEST
+    return  [s,s,w,s,w,w,s,w]
+
+def depthFirstSearch(problem):
+    """
+    Search the deepest nodes in the search tree first
+
+    Your search algorithm needs to return a list of actions that reaches
+    the goal.  Make sure to implement a graph search algorithm
+
+    To get started, you might want to try some of these simple commands to
+    understand the search problem that is being passed in:
+
+    print "Start:", problem.getStartState()
+    print "Is the start a goal?", problem.isGoalState(problem.getStartState())
+    print "Start's successors:", problem.getSuccessors(problem.getStartState())
+    """
+    "*** YOUR CODE HERE ***"
+    from util import Stack
+    node = {'state': problem.getStartState(), 'cost': 0}
+    if problem.isGoalState(node['state']):
+        return []
+    frontier = Stack()
+    action_record = Stack()
+    explored = []
+
+    explored.append(node['state'])
+    for successor in problem.getSuccessors(node['state']):
+        frontier.push(successor[0])
+        actions = []
+        actions.append(successor[1])
+        action_record.push(actions)
+
+    while not frontier.isEmpty():
+        node = frontier.pop()
+        cur_act = action_record.pop()
+        if problem.isGoalState(node):
+            return cur_act
+
+        for successor in problem.getSuccessors(node):
+            if successor[0] not in explored:
+                frontier.push(successor[0])
+                cur_act.append(successor[1])
+                tempPath = copy.copy(cur_act)
+                action_record.push(tempPath)
+                cur_act.pop()
+        explored.append(node)
+    util.raiseNotDefined()
+
+def breadthFirstSearch(problem):
+    """
+    Search the shallowest nodes in the search tree first.
+    refered to the pseudocode on text book Artificial Intelligence: A Modern Approach p.82
+    """
+    from util import Queue
+    node={'state': problem.getStartState(),'cost':0}
+    if problem.isGoalState(node['state']):
+        return []
+    frontier = Queue()
+    action_record = Queue()
+    explored = []
+
+    explored.append(node['state'])
+    for successor in problem.getSuccessors(node['state']):
+        frontier.push(successor[0])
+        actions = []
+        actions.append(successor[1])
+        action_record.push(actions)
+        explored.append(successor[0])
+
+    while not frontier.isEmpty():
+        node = frontier.pop()
+        cur_act = action_record.pop()
+        if problem.isGoalState(node):
+            return cur_act
+
+        for successor in problem.getSuccessors(node):
+            if successor[0] not in explored:
+                frontier.push(successor[0])
+                cur_act.append(successor[1])
+                tempPath = copy.copy(cur_act)
+                action_record.push(tempPath)
+                cur_act.pop()
+                explored.append(successor[0])
+    util.raiseNotDefined()
+
+def uniformCostSearch(problem):
+    "Search the node of least total cost first. "
+    "consult the easier way to do for loop from https://github.com/karlapalem/UC-Berkeley-AI-Pacman-Project/blob/master/search/search.py"
+    "*** YOUR CODE HERE ***"
+    from util import PriorityQueue
+
+    frontier = PriorityQueue()
+    frontier.push((problem.getStartState(), [], 0), 0) #priority is 0
+    explored = []
+
+    while not frontier.isEmpty():
+        node, cur_act, costs = frontier.pop()
+        if not node in explored:
+            explored.append(node)
+            if problem.isGoalState(node):
+                return cur_act
+            for successor in problem.getSuccessors(node):
+                if successor[0] not in explored:
+                    frontier.push((successor[0], cur_act + [successor[1]], costs + successor[2]), costs + successor[2])
+    util.raiseNotDefined()
+
+def nullHeuristic(state, problem=None):
+    """
+    A heuristic function estimates the cost from the current state to the nearest
+    goal in the provided SearchProblem.  This heuristic is trivial.
+    """
+    return 0
+
+def aStarSearch(problem, heuristic=nullHeuristic):
+    "Search the node that has the lowest combined cost and heuristic first."
+    "*** YOUR CODE HERE ***"
+
+    from util import PriorityQueue
+    frontier = PriorityQueue()
+    #don't count heuristic cost in node
+    frontier.push((problem.getStartState(), [], 0), 0)
+    explored = []
+
+    while not frontier.isEmpty():
+        node, cur_act, costs = frontier.pop()
+        if not node in explored:
+            explored.append(node)
+            if problem.isGoalState(node):
+                return cur_act
+            for successor in problem.getSuccessors(node):
+                if successor[0] not in explored:
+                    # compute heuristic seperately  only for pq
+                    hCost = costs + successor[2] + heuristic(successor[0], problem)
+                    frontier.push((successor[0], cur_act + [successor[1]], costs + successor[2]), hCost)
+    util.raiseNotDefined()
+
+
+
+
+# Abbreviations
+bfs = breadthFirstSearch
+dfs = depthFirstSearch
+astar = aStarSearch
+ucs = uniformCostSearch
